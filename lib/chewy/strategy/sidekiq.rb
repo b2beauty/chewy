@@ -22,7 +22,7 @@ module Chewy
       end
 
       def leave
-        @stash.all? { |type, ids| Chewy::Strategy::Sidekiq::Worker.perform_async(type.name, ids) }
+        @stash.all? { |type, ids| Chewy::Strategy::Sidekiq::Worker.perform_async(type.name, ids) if ids.any? }
       end
     end
   end
