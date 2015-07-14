@@ -12,6 +12,9 @@ module Chewy
     class Sidekiq < Atomic
       class Worker
         include ::Sidekiq::Worker
+        sidekiq_options queue: 'chewy'
+        # tried to set sidekiq_options dinamically (Chewy.configuration[:sidekiq])
+        # but it didn't work since this runs before the YAML file is loaded
 
         def perform(type, ids)
           type.constantize.import!(ids)

@@ -48,7 +48,13 @@ module Chewy
 
       module ClassMethods
         def update_index(objects, options = {})
-          Chewy.strategy.current.update(self, objects, options)
+          if options[:strategy].present?
+            Chewy.strategy(options[:strategy]) do
+              Chewy.strategy.current.update(self, objects, options.except(:strategy))
+            end
+          else
+            Chewy.strategy.current.update(self, objects, options)
+          end
           true
         end
       end
