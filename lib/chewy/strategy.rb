@@ -11,6 +11,7 @@ end
 
 begin
   require 'sidekiq'
+  require 'sidekiq-unique-jobs'
   require 'chewy/strategy/sidekiq'
 rescue LoadError
 end

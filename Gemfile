@@ -11,6 +11,7 @@ gem 'activerecord'
 
 gem 'resque', require: false
 gem 'sidekiq', require: false
+gem 'sidekiq-unique-jobs', '3.0.14', require: false
 
 group :test do
   gem 'guard'

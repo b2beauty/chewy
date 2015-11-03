@@ -12,7 +12,7 @@ module Chewy
     class Sidekiq < Atomic
       class Worker
         include ::Sidekiq::Worker
-        sidekiq_options queue: 'chewy'
+        sidekiq_options queue: 'chewy', unique: true
         # tried to set sidekiq_options dinamically (Chewy.configuration[:sidekiq])
         # but it didn't work since this runs before the YAML file is loaded
 

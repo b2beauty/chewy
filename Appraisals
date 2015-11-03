@@ -4,6 +4,7 @@
     gem 'activesupport', "~> #{version}.0"
     gem 'resque', require: false
     gem 'sidekiq', require: false
+    gem 'sidekiq-unique-jobs', '3.0.14', require: false
   end
 
   appraise "rails.#{version}.activerecord.kaminari" do
@@ -25,6 +26,7 @@ end
     gem 'activesupport', "~> #{version}.0"
     gem 'resque', require: false
     gem 'sidekiq', require: false
+    gem 'sidekiq-unique-jobs', '3.0.14', require: false
   end
 
   appraise "rails.#{version}.mongoid.kaminari" do
