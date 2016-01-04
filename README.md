@@ -78,7 +78,7 @@ The resulting config merges both hashes. Client options are passed as is to `Ela
 The logger may be set explicitly:
 
 ```ruby
-Chewy.logger = Logger.new
+Chewy.logger = Logger.new(STDOUT)
 ```
 
 See [config.rb](lib/chewy/config.rb) for more details.
@@ -232,8 +232,8 @@ See [config.rb](lib/chewy/config.rb) for more details.
   However, to make it work, you must load the chewy plugin into Sequel model:
 
   ```ruby
-  Sequel::Model.plugin :chewy  # for all models, or...
-  User.plugin :chewy           # just for User
+  Sequel::Model.plugin :chewy_observe  # for all models, or...
+  User.plugin :chewy_observe           # just for User
   ```
 
 ### Multi (nested) and object field types
@@ -259,6 +259,25 @@ end
 ```
 
 The `value:` option for internal fields would no longer be effective.
+
+### Geo Point fields
+
+You can use [Elasticsearch's geo mapping](https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping-geo-point-type.html) with the `geo_point` field type, allowing you to query, filter and order by latitude and longitude. You can use the following hash format:
+
+```ruby
+field :coordinates, type: 'geo_point', value: ->{ {lat: latitude, lon: longitude} }
+```
+
+or by using nested fields:
+
+```ruby
+field :coordinates, type: 'geo_point' do
+  field :lat, value: ->{ latitude }
+  field :long, value: ->{ longitude }
+end
+```
+
+See the section on *Script fields* for details on calculating distance in a search.
 
 ### Crutches™ technology
 
@@ -422,6 +441,16 @@ Chewy.strategy(:sidekiq) do
 end
 ```
 
+#### `:active_job`
+
+This does the same thing as `:atomic`, but using ActiveJob. This will inherit the ActiveJob configuration settings including the `active_job.queue_adapter` setting for the environment. Patch `Chewy::Strategy::ActiveJob::Worker` for index updates improving.
+
+```ruby
+Chewy.strategy(:active_job) do
+  City.popular.map(&:do_some_update_action!)
+end
+```
+
 #### `:urgent`
 
 The following strategy is convenient if you are going to update documents in your index one by one.
@@ -485,7 +514,7 @@ There are a couple of predefined strategies for your Rails application. Initiall
 
 Migrations are wrapped with the `:bypass` strategy. Because the main behavior implies that indices are reset after migration, there is no need for extra index updates. Also indexing might be broken during migrations because of the outdated schema.
 
-Controller actions are wrapped with the `:atomic` strategy with middleware just to reduce the number of index update requests inside actions.
+Controller actions are wrapped with the configurable value of `Chewy.request_strategy` and defaults to `:atomic`. This is done at the middleware level to reduce the number of index update requests inside actions.
 
 It is also a good idea to set up the `:bypass` strategy inside your test suite and import objects manually only when needed, and use `Chewy.massacre` when needed to flush test ES indices before every example. This will allow you to minimize unnecessary ES requests and reduce overhead.
 
@@ -844,6 +873,83 @@ The response will include the `:facets` sidechannel:
 
 ```
 < { ... ,"facets":{"countries":{"_type":"terms","missing":?,"total":?,"other":?,"terms":[{"term":"USA","count":?},{"term":"Brazil","count":?}, ...}}
+```
+
+### Aggregations
+
+Aggregations are part of the optional sidechannel that can be requested with a query.
+
+You interact with aggregations using the composable #aggregations method (or its alias #aggs)
+
+Let's look at an example.
+
+```ruby
+class UsersIndex < Chewy::Index
+  define_type User do
+    field :name
+    field :rating
+  end
+end
+
+all_johns = UsersIndex::User.filter { name == 'john' }.aggs({ avg_rating: { avg: { field: 'rating' } } })
+
+avg_johns_rating = all_johns.aggs
+# => {"avg_rating"=>{"value"=>3.5}}
+```
+
+It is convenient to name aggregations that you intend to reuse regularly. This is achieve with the .aggregation method,
+which is also available under the .agg alias method.
+
+Here's the same example from before
+
+```ruby
+class UsersIndex < Chewy::Index
+  define_type User do
+    field :name
+    field :rating, type: "long"
+    agg :avg_rating do
+      { avg: { field: 'rating' } }
+    end
+  end
+end
+
+all_johns = UsersIndex::User.filter { name == 'john' }.aggs(:avg_rating)
+
+avg_johns_rating = all_johns.aggs
+# => {"avg_rating"=>{"value"=>3.5}}
+```
+
+It is possible to run into collisions between named aggregations. This occurs when there is more than one aggregation
+ with the same name. To explicitly reference an aggregation you provide a string to the #aggs method of the form: 
+ `index_name#document_type.aggregation_name`
+ 
+Consider this example where there are two separate aggregations named `avg_rating`
+
+```ruby
+class UsersIndex < Chewy::Index
+  define_type User do
+    field :name
+    field :rating, type: "long"
+    agg :avg_rating do
+      { avg: { field: 'rating' } }
+    end
+  end
+  define_type Post do
+    field :title
+    field :body
+    field :comments do
+      field :message
+      field :rating, type: "long"
+    end
+    agg :avg_rating do
+      { avg: { field: 'comments.rating' } }
+    end
+  end
+end
+
+all_docs = UsersIndex.filter {match_all}.aggs("users#user.avg_rating")
+all_docs.aggs
+# => {"users#user.avg_rating"=>{"value"=>3.5}} 
 ```
 
 ### Script fields

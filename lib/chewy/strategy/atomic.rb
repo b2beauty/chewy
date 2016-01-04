@@ -1,6 +1,6 @@
 module Chewy
   class Strategy
-    # This strategy accomulates all the objects prepared for
+    # This strategy accumulates all the objects prepared for
     # indexing and fires index process when strategy is popped
     # from the strategies stack.
     #
@@ -20,7 +20,7 @@ module Chewy
         ActiveSupport::Deprecation.warn("`urgent: true` option is deprecated and is not effective inside `:atomic` strategy, use `Chewy.strategy(:urgent)` strategy instead") if options.key?(:urgent)
 
         @stash[type] ||= []
-        @stash[type] |= type.adapter.identify(objects)
+        @stash[type] |= type.send(:build_root).id ? Array.wrap(objects) : type.adapter.identify(objects)
       end
 
       def leave
