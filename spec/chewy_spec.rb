@@ -25,11 +25,11 @@ describe Chewy do
     specify { expect { described_class.derive_type('developers#borogoves') }.to raise_error Chewy::UnderivableType, /DevelopersIndex.*borogoves/ }
     specify { expect { described_class.derive_type('namespace/autocomplete') }.to raise_error Chewy::UnderivableType, /AutocompleteIndex.*namespace\/autocomplete#type_name/ }
 
-    specify { expect(described_class.derive_type(DevelopersIndex.developer)).to eq(DevelopersIndex.developer) }
-    specify { expect(described_class.derive_type('developers')).to eq(DevelopersIndex.developer) }
-    specify { expect(described_class.derive_type('developers#developer')).to eq(DevelopersIndex.developer) }
-    specify { expect(described_class.derive_type('namespace/autocomplete#developer')).to eq(Namespace::AutocompleteIndex.developer) }
-    specify { expect(described_class.derive_type('namespace/autocomplete#company')).to eq(Namespace::AutocompleteIndex.company) }
+    specify { expect(described_class.derive_type(DevelopersIndex::Developer)).to eq(DevelopersIndex::Developer) }
+    specify { expect(described_class.derive_type('developers')).to eq(DevelopersIndex::Developer) }
+    specify { expect(described_class.derive_type('developers#developer')).to eq(DevelopersIndex::Developer) }
+    specify { expect(described_class.derive_type('namespace/autocomplete#developer')).to eq(Namespace::AutocompleteIndex::Developer) }
+    specify { expect(described_class.derive_type('namespace/autocomplete#company')).to eq(Namespace::AutocompleteIndex::Company) }
   end
 
   describe '.create_type' do
@@ -111,18 +111,19 @@ describe Chewy do
     specify { expect(CompaniesIndex.exists?).to eq(false) }
   end
 
-  describe '#urgent_update=' do
-    specify do
-      described_class.urgent_update = true
-      expect(described_class.strategy.current).to be_a(Chewy::Strategy::Urgent)
-      described_class.urgent_update = false
-      expect(described_class.strategy.current).to be_a(Chewy::Strategy::Base)
-    end
-  end
+  describe '.client' do
+    let!(:initial_client) { Thread.current[:chewy_client] }
+    let(:block) { proc { } }
+    let(:mock_client) { double(:client) }
 
-  describe '#atomic' do
-    specify do
-      described_class.atomic { expect(described_class.strategy.current).to be_a(Chewy::Strategy::Atomic) }
+    before do
+      Thread.current[:chewy_client] = nil
+      allow(Chewy).to receive_messages(configuration: { transport_options: { proc: block } })
+      allow(::Elasticsearch::Client).to receive(:new).with(Chewy.configuration, &block).and_return(mock_client)
     end
+
+    its(:client) { is_expected.to eq(mock_client) }
+
+    after { Thread.current[:chewy_client] = initial_client }
   end
 end
