@@ -2,6 +2,7 @@
   appraise "rails.#{version}.activerecord" do
     gem 'activerecord', "~> #{version}.0"
     gem 'activesupport', "~> #{version}.0"
+    gem 'activejob', "~> #{version}.0" if version >= '4.2'
     gem 'resque', require: false
     gem 'sidekiq', require: false
     gem 'sidekiq-unique-jobs', '3.0.14', require: false
@@ -10,12 +11,14 @@
   appraise "rails.#{version}.activerecord.kaminari" do
     gem 'activerecord', "~> #{version}.0"
     gem 'activesupport', "~> #{version}.0"
+    gem 'activejob', "~> #{version}.0" if version >= '4.2'
     gem 'kaminari', '0.16.3', require: false
   end
 
   appraise "rails.#{version}.activerecord.will_paginate" do
     gem 'activerecord', "~> #{version}.0"
     gem 'activesupport', "~> #{version}.0"
+    gem 'activejob', "~> #{version}.0" if version >= '4.2'
     gem 'will_paginate', require: false
   end
 end
@@ -42,7 +45,7 @@ end
   end
 end
 
-appraise "sequel.4.23" do
-  gem 'sequel', "~> 4.23.0"
+appraise "sequel.4.28" do
+  gem 'sequel', "~> 4.28.0"
   gem 'activesupport', '~> 4.2.0'
 end

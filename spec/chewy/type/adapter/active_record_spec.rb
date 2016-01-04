@@ -38,8 +38,9 @@ describe Chewy::Type::Adapter::ActiveRecord, :active_record do
   end
 
   describe '#identify' do
+    subject { described_class.new(City) }
+
     context do
-      subject { described_class.new(City) }
       let!(:cities) { 3.times.map { City.create! } }
 
       specify { expect(subject.identify(City.where(nil))).to match_array(cities.map(&:id)) }
@@ -50,7 +51,6 @@ describe Chewy::Type::Adapter::ActiveRecord, :active_record do
 
     context 'custom primary_key' do
       before { stub_model(:city) { self.primary_key = 'rating' } }
-      subject { described_class.new(City) }
       let!(:cities) { 3.times.map { |i| City.create! { |c| c.rating = i } } }
 
       specify { expect(subject.identify(City.where(nil))).to match_array([0, 1, 2]) }
@@ -111,50 +111,26 @@ describe Chewy::Type::Adapter::ActiveRecord, :active_record do
       before { cities.last(2).map(&:destroy) }
       subject { described_class.new(City) }
 
-      context do
-        before do
-          City.class_eval do
-            def delete_from_index?
-              rating.in?([1, 3])
-            end
+      before do
+        City.class_eval do
+          def delete_already?
+            rating.in?([1, 3])
           end
         end
-
-        specify { expect(import(City.where(nil))).to eq([
-          { index: [cities[0]], delete: [cities[1]] }
-        ]) }
-        specify { expect(import(cities)).to eq([
-          { index: [cities[0]], delete: [cities[1]] },
-          { delete: cities.last(2) }
-        ]) }
-        specify { expect(import(cities.map(&:id))).to eq([
-          { index: [cities[0]], delete: [cities[1]] },
-          { delete: cities.last(2).map(&:id) }
-        ]) }
       end
+      subject { described_class.new(City, delete_if: ->{ delete_already? }) }
 
-      context do
-        before do
-          City.class_eval do
-            def delete_already?
-              rating.in?([1, 3])
-            end
-          end
-        end
-        subject { described_class.new(City, delete_if: ->{ delete_already? }) }
-
-        specify { expect(import(City.where(nil))).to eq([
-          { index: [cities[0]], delete: [cities[1]] }
-        ]) }
-        specify { expect(import(cities)).to eq([
-          { index: [cities[0]], delete: [cities[1]] },
-          { delete: cities.last(2) }
-        ]) }
-        specify { expect(import(cities.map(&:id))).to eq([
-          { index: [cities[0]], delete: [cities[1]] },
-          { delete: cities.last(2).map(&:id) }
-        ]) }
-      end
+      specify { expect(import(City.where(nil))).to eq([
+        { index: [cities[0]], delete: [cities[1]] }
+      ]) }
+      specify { expect(import(cities)).to eq([
+        { index: [cities[0]], delete: [cities[1]] },
+        { delete: cities.last(2) }
+      ]) }
+      specify { expect(import(cities.map(&:id))).to eq([
+        { index: [cities[0]], delete: [cities[1]] },
+        { delete: cities.last(2).map(&:id) }
+      ]) }
     end
 
     context 'custom primary_key' do

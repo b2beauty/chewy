@@ -353,6 +353,7 @@ module Chewy
     # Returns empty hash if no facets was requested or resulted.
     #
     def facets params = nil
+      raise RemovedFeature, 'removed in elasticsearch 2.0' if Runtime.version >= '2.0'
       if params
         chain { criteria.update_facets params }
       else
@@ -386,7 +387,7 @@ module Chewy
     # added to the search request and combinded according to
     # <tt>boost_mode</tt> and <tt>score_mode</tt>
     #
-    # This probably only makes sense if you specifiy a filter
+    # This probably only makes sense if you specify a filter
     # for the boost factor as well
     #
     #   UsersIndex.boost_factor(23, filter: { term: { foo: :bar} })
@@ -408,7 +409,7 @@ module Chewy
     # added to the search request and combinded according to
     # <tt>boost_mode</tt> and <tt>score_mode</tt>
     #
-    # This probably only makes sense if you specifiy a filter
+    # This probably only makes sense if you specify a filter
     # for the random score as well.
     #
     # If you do not pass in a seed value, Time.now will be used
@@ -511,13 +512,52 @@ module Chewy
     #          }}
     #
     def aggregations params = nil
+      @_named_aggs ||= _build_named_aggs
+      @_fully_qualified_named_aggs ||= _build_fqn_aggs
       if params
+        params = { params => @_named_aggs[params] } if params.is_a?(Symbol)
+        params = { params => _get_fully_qualified_named_agg(params) } if params.is_a?(String) && params =~ /\A\S+#\S+\.\S+\z/
         chain { criteria.update_aggregations params }
       else
         _response['aggregations'] || {}
       end
     end
     alias :aggs :aggregations
+
+    # In this simplest of implementations each named aggregation must be uniquely named
+    def _build_named_aggs
+      named_aggs = {}
+      @_indexes.each do |index|
+        index.types.each do |type|
+          type._agg_defs.each do |agg_name, prc|
+            named_aggs[agg_name] = prc.call
+          end
+        end
+      end
+      named_aggs
+    end
+
+    def _build_fqn_aggs
+      named_aggs = {}
+      @_indexes.each do |index|
+        named_aggs[index.to_s.downcase] ||= {}
+        index.types.each do |type|
+          named_aggs[index.to_s.downcase][type.to_s.downcase] ||= {}
+          type._agg_defs.each do |agg_name, prc|
+            named_aggs[index.to_s.downcase][type.to_s.downcase][agg_name.to_s.downcase] = prc.call
+          end
+        end
+      end
+      named_aggs
+    end
+
+    def _get_fully_qualified_named_agg(str)
+      parts = str.scan(/\A(\S+)#(\S+)\.(\S+)\z/).first
+      idx = "#{parts[0]}index"
+      type = "#{idx}::#{parts[1]}"
+      agg_name = parts[2]
+      @_fully_qualified_named_aggs[idx][type][agg_name]
+    end
 
     # Sets elasticsearch <tt>suggest</tt> search request param
     #
@@ -867,6 +907,10 @@ module Chewy
     #   UsersIndex::User.filter{ age <= 42 }.delete_all
     #
     def delete_all
+      if Runtime.version > '2.0'
+        plugins = Chewy.client.nodes.info(plugins: true)["nodes"].values.map { |item| item["plugins"] }.flatten
+        raise PluginMissing, "install delete-by-query plugin" unless plugins.find { |item| item["name"] == 'delete-by-query' }
+      end
       request = chain { criteria.update_options simple: true }.send(:_request)
       ActiveSupport::Notifications.instrument 'delete_query.chewy',
         request: request, indexes: _indexes, types: _types,
@@ -953,7 +997,7 @@ module Chewy
           begin
             Chewy.client.search(_request)
           rescue Elasticsearch::Transport::Transport::Errors::NotFound => e
-            raise e if e.message !~ /IndexMissingException/
+            raise e if e.message !~ /IndexMissingException/ && e.message !~ /index_not_found_exception/
             {}
           end
       end

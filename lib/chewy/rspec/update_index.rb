@@ -43,7 +43,7 @@ RSpec::Matchers.define :update_index do |type_name, options = {}|
   #     .to update_index(UsersIndex::User).and_reindex(user, times: 2) }
   #
   # Specify reindexed attributes. Note that arrays are
-  # compared position-independantly.
+  # compared position-independently.
   #
   #   specify { expect { user.update_attributes!(name: 'Duke') }
   #     .to update_index(UsersIndex.user).and_reindex(user, with: {name: 'Duke'}) }
@@ -194,7 +194,7 @@ RSpec::Matchers.define :update_index do |type_name, options = {}|
   end
 
   def agnostic_stub
-    if defined? Mocha
+    if defined?(Mocha) && RSpec.configuration.mock_framework.to_s == 'RSpec::Core::MockingAdapters::Mocha'
       "type.stubs(:bulk).with"
     else
       "allow(type).to receive(:bulk)"

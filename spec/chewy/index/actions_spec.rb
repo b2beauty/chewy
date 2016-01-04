@@ -54,8 +54,15 @@ describe Chewy::Index::Actions do
 
     context do
       before { DummiesIndex.create }
-      specify { expect { DummiesIndex.create! }.to raise_error }
-      specify { expect { DummiesIndex.create!('2013') }.to raise_error }
+      specify do
+        skip_on_version_gte('2.0', 'format of exception changed in 2.x')
+        expect { DummiesIndex.create! }.to raise_error(Elasticsearch::Transport::Transport::Errors::BadRequest).with_message(/\[\[dummies\] already exists\]/)
+      end
+      specify do
+        skip_on_version_lt('2.0', 'format of exception was changed')
+        expect { DummiesIndex.create! }.to raise_error(Elasticsearch::Transport::Transport::Errors::BadRequest).with_message(/index_already_exists_exception.*dummies/)
+      end
+      specify { expect { DummiesIndex.create!('2013') }.to raise_error(Elasticsearch::Transport::Transport::Errors::BadRequest).with_message(/Invalid alias name \[dummies\]/) }
     end
 
     context do
@@ -64,7 +71,14 @@ describe Chewy::Index::Actions do
       specify { expect(Chewy.client.indices.exists(index: 'dummies_2013')).to eq(true) }
       specify { expect(DummiesIndex.aliases).to eq([]) }
       specify { expect(DummiesIndex.indexes).to eq(['dummies_2013']) }
-      specify { expect { DummiesIndex.create!('2013') }.to raise_error }
+      specify do
+        skip_on_version_gte('2.0', 'format of exception changed in 2.x')
+        expect { DummiesIndex.create!('2013') }.to raise_error(Elasticsearch::Transport::Transport::Errors::BadRequest).with_message(/\[\[dummies_2013\] already exists\]/)
+      end
+      specify do
+        skip_on_version_lt('2.0', 'format of exception was changed')
+        expect { DummiesIndex.create!('2013') }.to raise_error(Elasticsearch::Transport::Transport::Errors::BadRequest).with_message(/index_already_exists_exception.*dummies_2013/)
+      end
       specify { expect(DummiesIndex.create!('2014')["acknowledged"]).to eq(true) }
 
       context do
@@ -128,8 +142,8 @@ describe Chewy::Index::Actions do
   end
 
   describe '.delete!' do
-    specify { expect { DummiesIndex.delete! }.to raise_error }
-    specify { expect { DummiesIndex.delete!('2013') }.to raise_error }
+    specify { expect { DummiesIndex.delete! }.to raise_error(Elasticsearch::Transport::Transport::Errors::NotFound) }
+    specify { expect { DummiesIndex.delete!('2013') }.to raise_error(Elasticsearch::Transport::Transport::Errors::NotFound) }
 
     context do
       before { DummiesIndex.create }

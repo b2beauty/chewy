@@ -2,7 +2,60 @@
 
 ## Changes
 
+  * Accessing types with methods is deprecated. Use `MyIndex::MyType` constant reference instead of `MyIndex.my_type` method.
+
+  * Sequel adapter improvements by @mrbrdo
+
+# Version 0.8.3
+
+## Changes
+
+  * Sequel support completely reworked to use common ORM implementations + better sequel specs covarage.
+
+## Bugfixes
+
+  * Sequel objects transactional destruction fix
+
+  * Correct Rspec mocking framework checking (@mainameiz)
+
+  * Atomic strategy is now compatible with custom ids proc.
+
+  * Safe unsubscribe on import (@marshall-lee)
+
+  * Correct custom assets path silencer (@davekaro)
+
+## Incompatible changes:
+
+  * `Chewy.atomic` and `Chewy.urgent_update=` methods was removed from the codebase, use `Chewy.strategy` block instead.
+
+  * `delete_from_index?` hook is removed from the codebase.
+
+# Version 0.8.2
+
+## Changes
+
+  * ActiveJob strategy by @mkcode
+
+  * Async strategies tweak (@AndreySavelyev)
+
+  * GeoPoint readme (@joonty)
+
+  * Multiple grammar fixes and code improvements (@biow0lf)
+
+  * Named aggregations by @caldwecr
+
+  * Sequel adapter by @jirutka
+
+  * Rake helper methods extracted (@caldwecr, @jirutka)
+
+  * Multiple grammar fixes (@henrebotha)
+
   * Ability to pass a proc to `update_index` to define updating index dynamically (@SeTeM)
+
+
+## Bugfixes
+
+  * Fixed transport logger and tracer configuration
 
 # Version 0.8.1
 
@@ -94,7 +147,7 @@
 
   * Multiple enhancements by @DNNX
 
-  * Added `script_fields` to search crteria (@ka8725)
+  * Added `script_fields` to search criteria (@ka8725)
 
   * ORM adapters now completely relies on the default scope. This means every scope or objects passed to import are merged with default scope so basically there is no need to define `delete_if` block. Default scope strongly restricts objects which may land in the current index.
 
@@ -273,13 +326,13 @@
 
 # Version 0.4.0
 
-  * Changed `update_index` matcher behavior. Now it compare array attributes position-independantly.
+  * Changed `update_index` matcher behavior. Now it compare array attributes position-independently.
 
   * Search aggregations API support (@arion).
 
   * Chewy::Query#facets called without params performs the request and returns facets.
 
-  * Added `Type.template` dsl method for root objects dynamic templates definition. See [mapping.rb](lib/chewy/type/mapping.rb) for more details.
+  * Added `Type.template` DSL method for root objects dynamic templates definition. See [mapping.rb](lib/chewy/type/mapping.rb) for more details.
 
   * ActiveRecord adapter custom `primary_key` support (@matthee).
 
@@ -418,8 +471,8 @@
 
 # Version 0.0.1
 
-  * Query dsl
+  * Query DSL
 
-  * Basic index hadling
+  * Basic index handling
 
   * Initial version
