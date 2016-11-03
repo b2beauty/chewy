@@ -42,7 +42,10 @@ module Chewy
         end
 
         def pluck_ids(scope)
-          scope.except(:includes, :joins, :group).uniq.pluck(target.primary_key.to_sym)
+          except_left_joins = scope.joins_values.reject{ |sql_fragment| sql_fragment =~ /\bleft\s+(outer\s+)?join\b/i }
+          scope.except(:includes, :joins)
+            .joins(except_left_joins)
+            .uniq.pluck(target.primary_key.to_sym)
         end
 
         def scope_where_ids_in(scope, ids)
