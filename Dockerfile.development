@@ -1,0 +1,11 @@
+FROM ruby:2.3.3
+RUN gem install bundler
+RUN bundle config git.allow_insecure true
+
+RUN mkdir /app
+WORKDIR /app
+ADD . /app/
+RUN bundle install --jobs 20 --retry 5
+
+ENTRYPOINT []
+# CMD ["bundle", "exec", "rspec"]
