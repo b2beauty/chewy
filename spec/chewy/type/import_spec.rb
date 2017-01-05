@@ -367,7 +367,11 @@ describe Chewy::Type::Import do
         end
       end
 
-      specify { expect { city.import!(dummy_cities) }.to raise_error Chewy::ImportFailed }
+      # Error message with placeholder '?'
+      specify do
+        expect { city.import!(dummy_cities) }.
+          to raise_error Chewy::ImportFailed, /\bparse\s+field\b.+\bname\b.+\?/m
+      end
     end
 
     context 'when .import fails' do

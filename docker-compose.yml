@@ -1,0 +1,22 @@
+version: "2"
+services:
+  chewy:
+    build:
+      context: .
+      dockerfile: Dockerfile.development
+    command: bash
+    volumes:
+      - .:/app
+    environment:
+      - TERM=xterm-256color
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      # - BYEBUG_DEBUG=true
+    # stdin_open: true
+    # tty: true
+    links:
+      - elasticsearch
+
+  elasticsearch:
+    image: elasticsearch:2.4.1
+    expose:
+      - "9200"
