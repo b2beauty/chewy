@@ -20,13 +20,8 @@ module Chewy
     end
 
     module MigrationStrategy
-      extend ActiveSupport::Concern
-      included do
-        alias_method_chain :migrate, :chewy
-      end
-
-      def migrate_with_chewy(*args)
-        Chewy.strategy(:bypass) { migrate_without_chewy(*args) }
+      def migrate(*args)
+        Chewy.strategy(:bypass) { super(*args) }
       end
     end
 
@@ -50,8 +45,8 @@ module Chewy
 
     initializer 'chewy.migration_strategy' do
       ActiveSupport.on_load(:active_record) do
-        ActiveRecord::Migration.send(:include, MigrationStrategy)
-        ActiveRecord::Migrator.send(:include, MigrationStrategy) if defined? ActiveRecord::Migrator
+        ActiveRecord::Migration.prepend(MigrationStrategy)
+        ActiveRecord::Migrator.prepend(MigrationStrategy) if defined? ActiveRecord::Migrator
       end
     end
 
