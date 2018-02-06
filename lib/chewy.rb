@@ -122,9 +122,17 @@ module Chewy
     # Main elasticsearch-ruby client instance
     #
     def client
-      Thread.current[:chewy_client] ||= begin
-        block = configuration[:transport_options].try { |c| c[:proc] }
-        ::Elasticsearch::Client.new(configuration, &block)
+      # https://github.com/mperham/connection_pool#migrating-to-a-connection-pool
+      if defined?(ConnectionPool::Wrapper) && configuration[:pool]
+        ConnectionPool::Wrapper.new(size: configuration[:pool], timeout: 5) do
+          block = configuration[:transport_options].try { |c| c[:proc] }
+          ::Elasticsearch::Client.new(configuration, &block)
+        end
+      else
+        Thread.current[:chewy_client] ||= begin
+          block = configuration[:transport_options].try { |c| c[:proc] }
+          ::Elasticsearch::Client.new(configuration, &block)
+        end
       end
     end
 
